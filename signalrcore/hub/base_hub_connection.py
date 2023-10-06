@@ -1,15 +1,17 @@
 import uuid
 from typing import Callable
+
 from signalrcore.messages.message_type import MessageType
-from signalrcore.messages.stream_invocation_message\
+from signalrcore.messages.stream_invocation_message \
     import StreamInvocationMessage
 from .errors import HubConnectionError
-from signalrcore.helpers import Helpers
 from .handlers import StreamHandler, InvocationHandler
-from ..transport.websockets.websocket_transport import WebsocketTransport
 from ..helpers import Helpers
-from ..subject import Subject
 from ..messages.invocation_message import InvocationMessage
+from ..messages.completion_message import CompletionMessage
+from ..subject import Subject
+from ..transport.websockets.websocket_transport import WebsocketTransport
+
 
 class InvocationResult(object):
     def __init__(self, invocation_id) -> None:
@@ -170,7 +172,13 @@ class BaseHubConnection(object):
                 if len(fired_handlers) == 0:
                     self.logger.debug(f"event '{message.target}' hasn't fired any handler")
                 for _, handler in fired_handlers:
-                    handler(message.arguments)
+                    handler_result = handler(message.arguments)
+                    if message.invocation_id is not None and handler_result is not None:
+                        self.transport.send(CompletionMessage(
+                            message.invocation_id,
+                            handler_result,
+                            None
+                        ))
 
             if message.type == MessageType.close:
                 self.logger.info("Close message received from server")
@@ -178,7 +186,7 @@ class BaseHubConnection(object):
                 return
 
             if message.type == MessageType.completion:
-                if message.error is not None and len(message.error) > 0:
+                if hasattr(message, 'error') and len(message.error) > 0:
                     self._on_error(message)
 
                 # Send callbacks

@@ -75,3 +75,5 @@ class CompletionMessage(BaseHeadersMessage):
         self.invocation_id = invocation_id
         self.result = result
         self.error = error
+        if error:
+            self.error = error
