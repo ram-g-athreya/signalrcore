@@ -74,6 +74,5 @@ class CompletionMessage(BaseHeadersMessage):
         super(CompletionMessage, self).__init__(3, **kwargs)
         self.invocation_id = invocation_id
         self.result = result
-        self.error = error
         if error:
             self.error = error
